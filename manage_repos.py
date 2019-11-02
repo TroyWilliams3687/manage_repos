@@ -37,7 +37,7 @@ from pathlib import Path
 
 def run_counter_command(command, repo_path):
     """
-    Takes the list and attempts to run it in the command shell.
+    Takes the list and attempts to run it in the command shell. Returns a Counter indicating the status.
 
     Note: all bits of the command and parameter must be a separate entry in the
     list.
@@ -97,7 +97,6 @@ def create_argument_parser():
         action="store_true",
     )
 
-    # checkout
     parser.add_argument(
         "--checkout",
         help="The name of the branch in the repo to checkout. It will be created if it doesn't exist.",
@@ -106,14 +105,12 @@ def create_argument_parser():
         metavar="BRANCH NAME",
     )
 
-    # add
     parser.add_argument(
         "--add",
         help="Add new files to the stage of the current branch.",
         action="store_true",
     )
 
-    # commit
     parser.add_argument(
         "--commit",
         help="Commit the files to the active branch with the commit message.",
@@ -122,7 +119,6 @@ def create_argument_parser():
         metavar="MESSAGE",
     )
 
-    # push
     parser.add_argument(
         "--push",
         help="Push the changes to remote, creating a tracking branch if required.",
@@ -165,7 +161,6 @@ def find_repos(root):
     """
     Search for all the git repos under the root folder. It will return a list
     of git repos that are relative to the root (including the root folder)
-
     """
 
     repos = []
@@ -222,9 +217,6 @@ def display_status(repo):
     # !           !    ignored
     # -------------------------------------------------
 
-    # Use git status --porcelain for this --porcelain: Give the output in a stable, easy-to-parse format for scripts... – estani Nov 5 '12 at 10:52
-    # Or even better, use --z instead of --porcelain. Unlike --porcelain, --z doesn't escape filenames. – Vojislav Stojkovic Nov 12 '12 at 20:03
-    # git_commands['status'] = ['git', 'status', '--z']
     git = ["git", "status", "--porcelain"]
     status = run_counter_command(git, repo)
 
@@ -369,12 +361,6 @@ def changes_to_remote(repo, branch_name, commit_msg):
     commit_msg - str - The message used when committing the changes. This will probably be generic.
 
     """
-
-    # add a flag to do the following for the laptop:
-    # $ git checkout -b LT-IRI-01 <- branch name should be CLI option
-    # $ git add . <- only if untracked files - basically stage all changes
-    # $ git commit -a  <- add the commit message via command line here
-    # $ git push -u --all
 
     print("Checkout...")
     status = checkout(repo, branch_name)
