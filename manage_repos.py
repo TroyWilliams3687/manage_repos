@@ -7,6 +7,25 @@ This script will manage multiple git repositories
 
 https://stackoverflow.com/questions/1456269/python-git-module-experiences
 
+
+TODO
+
+add a flag to do the following for the laptop:
+$ git branch LT-IRI-01 <- branch name should be CLI option
+$ git add . <- only if untracked files - basically stage all changes
+$ git commit -a  <- add the commit message via command line here
+$ git push -u --all
+
+add an option to do the following on my home computer:
+$ git merge LT-IRI-01 <- cli option
+$ git branch -d LT-IRI-01 <- CLI option - this may not be necessary as I may just leave it in
+
+Will need to update the status so that it shows when branches are ahead of the master branch...
+My Tasks
+
+
+
+# -------------------------
 Copyright (c) 2019 Troy Williams
 
 License: The MIT License (http://www.opensource.org/licenses/mit-license.php)
@@ -28,7 +47,7 @@ from collections import Counter
 from pathlib import Path
 
 
-def run_command(command, repo_path):
+def run_counter_command(command, repo_path):
     """
     Takes the list and attempts to run it in the command shell.
 
@@ -37,11 +56,6 @@ def run_command(command, repo_path):
     """
     if not command:
         raise Exception("Valid command required - fill the list please!")
-
-    # p = Popen(command, shell=False, cwd=repo_path)
-    # retval = p.wait()
-
-    # return status
 
     p = Popen(command, stdout=PIPE, shell=False, cwd=repo_path)
     retval = p.wait()
@@ -53,43 +67,91 @@ def run_command(command, repo_path):
 
     return status
 
-    # pipe = Popen(command, stdout=PIPE, cwd=repo_path)
-    # status = Counter(line.split()[0] for line in pipe.stdout)
 
-    # return status
+def run_command(command, repo_path):
+    """
+    Takes the list and attempts to run it in the command shell.
 
-    # pipe = subprocess.Popen(command, shell=True,
-    #                                  cwd=repo_path,
-    #                                  stdout = subprocess.PIPE,
-    #                                  stderr = subprocess.PIPE)
+    Note: all bits of the command and parameter must be a separate entry in the
+    list.
+    """
+    if not command:
+        raise Exception("Valid command required - fill the list please!")
 
-    # out, error = pipe.communicate()
-    # pipe.wait()
+    p = Popen(command, stdout=PIPE, shell=False, cwd=repo_path)
+    retval = p.wait()
 
-    # return
+    if retval != 0:
+        raise ValueError("Something happened while running the command!")
+
+    status = [line.decode("utf-8") for line in p.stdout]
+
+    return status
+
 
 def create_argument_parser():
     """
     """
 
-    parser = argparse.ArgumentParser(
-        description="Manage Git Repositories."
-    )
+    parser = argparse.ArgumentParser(description="Manage Git Repositories.")
     parser.add_argument(
-        "path",
-        help="The root path where the repos are located.",
-        default=Path.cwd(),
+        "path", help="The root path where the repos are located.", default=Path.cwd()
     )
 
-    parser.add_argument("-l", "--list", help="List all of the repositories recursively from the root."
-                                      , action='store_true'
-                                      , default=False)
+    parser.add_argument(
+        "-l",
+        "--list",
+        help="List all of the repositories recursively from the root.",
+        action="store_true",
+    )
 
-    parser.add_argument("-s", "--status", help="List the status of the repositories."
-                                        , action='store_true'
-                                        , default=False)
+    parser.add_argument(
+        "-s",
+        "--status",
+        help="List the status of the repositories.",
+        action="store_true",
+    )
 
-    return parser.parse_args()
+    # checkout
+    parser.add_argument(
+        "--checkout",
+        help="The name of the branch in the repo to checkout. It will be created if it doesn't exist.",
+        action="store",
+        default=None,
+        metavar="BRANCH NAME",
+    )
+
+    # add
+    parser.add_argument(
+        "--add",
+        help="Add new files to the stage of the current branch.",
+        action="store_true",
+    )
+
+    # commit
+    parser.add_argument(
+        "--commit",
+        help="Commit the files to the active branch with the commit message.",
+        action="store",
+        default=None,
+        metavar="MESSAGE",
+    )
+
+    # push
+    parser.add_argument(
+        "--push",
+        help="Push the changes to remote, creating a tracking branch if required.",
+        action="store_true",
+    )
+
+    parser.add_argument(
+        "--changes_to_remote",
+        help="Take the changes in a repo, create a branch, commit them and push to remote creating a tracking branch if necessary. Required: --checkout BRANCH NAME and --commit MESSAGE",
+        action="store_true",
+    )
+
+    return parser
+
 
 def find_repos(root):
     """
@@ -106,74 +168,8 @@ def find_repos(root):
 
     return repos
 
-# def gitAdd(fileName, repoDir):
-#     cmd = 'git add ' + fileName
-#     pipe = subprocess.Popen(cmd, shell=True, cwd=repoDir,stdout = subprocess.PIPE,stderr = subprocess.PIPE )
-#     (out, error) = pipe.communicate()
-#     print out,error
-#     pipe.wait()
-#     return
 
-# def gitCommit(commitMessage, repoDir):
-#     cmd = 'git commit -am "%s"'%commitMessage
-#     pipe = subprocess.Popen(cmd, shell=True, cwd=repoDir,stdout = subprocess.PIPE,stderr = subprocess.PIPE )
-#     (out, error) = pipe.communicate()
-#     print out,error
-#     pipe.wait()
-#     return
-# def gitPush(repoDir):
-#     cmd = 'git push '
-#     pipe = subprocess.Popen(cmd, shell=True, cwd=repoDir,stdout = subprocess.PIPE,stderr = subprocess.PIPE )
-#     (out, error) = pipe.communicate()
-#     pipe.wait()
-#     return
-
-# def command(x):
-#     return str(Popen(x.split(' '), stdout=PIPE).communicate()[0])
-
-# def rm_empty(L): return [l for l in L if (l and l!="")]
-
-# def getUntracked():
-#     os.chdir(repoDir)
-#     status = command("git status")
-#     if "# Untracked files:" in status:
-#         untf = status.split("# Untracked files:")[1][1:].split("\n")
-#         return rm_empty([x[2:] for x in untf if string.strip(x) != "#" and x.startswith("#\t")])
-#     else:
-#         return []
-
-# def getNew():
-#     os.chdir(repoDir)
-#     status = command("git status").split("\n")
-#     return [x[14:] for x in status if x.startswith("#\tnew file:   ")]
-
-# def getModified():
-#     os.chdir(repoDir)
-#     status = command("git status").split("\n")
-#     return [x[14:] for x in status if x.startswith("#\tmodified:   ")]
-
-# print("Untracked:")
-# print( getUntracked() )
-# print("New:")
-# print( getNew() )
-# print("Modified:")
-# print( getModified() )
-
-
-def git_commands(command):
-    """
-
-    """
-    git_commands = {}
-
-    # Use git status --porcelain for this --porcelain: Give the output in a stable, easy-to-parse format for scripts... – estani Nov 5 '12 at 10:52
-    # Or even better, use --z instead of --porcelain. Unlike --porcelain, --z doesn't escape filenames. – Vojislav Stojkovic Nov 12 '12 at 20:03
-    # git_commands['status'] = ['git', 'status', '--z']
-    git_commands['status'] = ['git', 'status', '--porcelain']
-
-    return git_commands[command]
-
-def display_status(repo, status):
+def display_status(repo):
     """
     """
     # https://codereview.stackexchange.com/questions/117639/bash-function-to-parse-git-status
@@ -217,37 +213,139 @@ def display_status(repo, status):
     # !           !    ignored
     # -------------------------------------------------
 
+    # Use git status --porcelain for this --porcelain: Give the output in a stable, easy-to-parse format for scripts... – estani Nov 5 '12 at 10:52
+    # Or even better, use --z instead of --porcelain. Unlike --porcelain, --z doesn't escape filenames. – Vojislav Stojkovic Nov 12 '12 at 20:03
+    # git_commands['status'] = ['git', 'status', '--z']
+    git = ["git", "status", "--porcelain"]
+    status = run_counter_command(git, repo)
+
+    if len(status) == 0:
+        print(f"{repo} - no changes...")
+        return
+
     print(repo)
-    if '??' in status:
-        print('\tUntracked: {}'.format(status['??']))
+    if "??" in status:
+        print("\tUntracked: {}".format(status["??"]))
 
-    if 'M' in status:
-        print('\tModified:  {}'.format(status['M']))
+    if "M" in status:
+        print("\tModified:  {}".format(status["M"]))
 
-    if 'D' in status:
-        print('\tDeleted:   {}'.format(status['D']))
+    if "D" in status:
+        print("\tDeleted:   {}".format(status["D"]))
 
-    if 'A' in status:
-        print('\tAdded:     {}'.format(status['A']))
+    if "A" in status:
+        print("\tAdded:     {}".format(status["A"]))
 
-    if 'R' in status:
-        print('\tRenamed:   {}'.format(status['R']))
+    if "R" in status:
+        print("\tRenamed:   {}".format(status["R"]))
 
-    if 'C' in status:
-        print('\tCopied:    {}'.format(status['C']))
+    if "C" in status:
+        print("\tCopied:    {}".format(status["C"]))
 
-    if 'U' in status:
-        print('\tUnmerged:  {}'.format(status['U']))
+    if "U" in status:
+        print("\tUnmerged:  {}".format(status["U"]))
 
-    status_codes = set(('??', 'M', 'D', 'A', 'R', 'C', 'U'))
+    status_codes = set(("??", "M", "D", "A", "R", "C", "U"))
     counter_keys = set(status.keys())
 
     # See if there are any returned keys in the counter that we don't account for
     missing_keys = counter_keys.difference(status_codes)
 
     for k in missing_keys:
-        print(f'{k} = {status[k]}')
+        print(f"{k} = {status[k]}")
 
+
+def checkout(repo, branch):
+    """
+    Checkout the branch (creates it if it doesn't exist)
+    """
+
+    git = ["git", "checkout", "--porcelain", "-b", branch_name]
+    status = run_command(git, repo)
+
+    return status
+
+
+def add(repo):
+    """
+    Add all new files to the stage of the current branch
+    """
+
+    git = ["git", "add", "--porcelain", "."]
+    status = run_command(git, repo)
+
+    return status
+
+
+def commit(repo, msg):
+    """
+    commit all staged files to the current branch
+    """
+
+    #
+    git = ["git", "commit", "--porcelain", "-a", "-m", commit_msg]
+    status = run_command(git, repo)
+
+    return status
+
+
+def push(repo):
+    """
+    push the branch to remote creating a tracker in the remote if necessary
+
+    -u; --set-upstream - For every branch that is up to date or successfully
+    pushed, add upstream (tracking) reference, used by argument-less
+    git-pull[1] and other commands.
+
+    --all - Push all branches (i.e. refs under refs/heads/); cannot be
+    used with other <refspec>.
+    """
+
+    # git = ["git", "push", "--porcelain", "-u", "--all"]
+    git = ["git", "push", "--porcelain", "-u"]
+    status = run_command(git, repo)
+
+    return status
+
+
+def changes_to_remote(repo, branch_name, commit_msg):
+    """
+    Checkout the branch (creates it if it doesn't exist), adds all new files to the stage,
+    commits the changes using the commit message and finally pushes the changes to the remote
+    creating the proper tracking branches.
+
+    This is used in my workflow where I have a number of repos across different computers. The latest
+    will always be on master
+
+    Parameters
+    ----------
+    repo - Path - path to the repository
+    branch_name - str - The name of the branch to use or create. This should be unique to the remote computers
+    commit_msg - str - The message used when committing the changes. This will probably be generic.
+
+    """
+
+    # add a flag to do the following for the laptop:
+    # $ git checkout -b LT-IRI-01 <- branch name should be CLI option
+    # $ git add . <- only if untracked files - basically stage all changes
+    # $ git commit -a  <- add the commit message via command line here
+    # $ git push -u --all
+
+    status = checkout(repo, branch_name)
+    print("\n".join(status))
+    print()
+
+    status = add(repo)
+    print("\n".join(status))
+    print()
+
+    status = commit(repo, commit_msg)
+    print("\n".join(status))
+    print()
+
+    status = push(repo)
+    print("\n".join(status))
+    print()
 
 
 def main():
@@ -255,7 +353,8 @@ def main():
     This runs the rest of the functions in this module
     """
 
-    args = create_argument_parser()
+    parser = create_argument_parser()
+    args = parser.parse_args()
 
     root = Path(args.path)
     if not root.exists():
@@ -264,35 +363,55 @@ def main():
     if not root.is_dir():
         raise ValueError(f"{args.path} is not a directory!")
 
-    print('Searching for repos...')
+    print("Searching for repos...")
     repos = find_repos(root)
 
     if args.list:
 
-        print(f'Found {len(repos)}...')
         for r in repos:
             print(r)
 
     elif args.status:
 
-        # untracked
-        # new
-        # modified
-        git = git_commands('status')
+        for r in repos:
+            display_status(r)
+
+    elif args.add:
+        for r in repos:
+            status = add(r)
+            print("\n".join(status))
+
+    elif args.push:
+        for r in repos:
+            status = push(r)
+            print("\n".join(status))
+
+    elif args.changes_to_remote:
+        # this has to be before --checkout and --commit
+
+        if args.checkout is None or args.commit is None:
+            print("--checkout and --commit are required!")
+            print()
+            parser.print_help()
+
+            return 1
 
         for r in repos:
-            status = run_command(git, r)
+            changes_to_remote(r, args.checkout, args.commit)
 
-            if len(status) > 0:
-                display_status(r, status)
-                print()
+    elif args.checkout:
 
-            else:
-                print(f'{r} - no changes...')
+        for r in repos:
+            status = checkout(r, args.checkout)
+            print("\n".join(status))
+
+    elif args.commit:
+        for r in repos:
+            status = commit(r, args.commit)
+            print("\n".join(status))
 
     else:
-        print('No option specified...')
-
+        print("No option specified...")
 
     return 0  # success
 
