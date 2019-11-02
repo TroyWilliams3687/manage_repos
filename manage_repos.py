@@ -81,12 +81,9 @@ def run_command(command, repo_path):
     p = Popen(command, stdout=PIPE, shell=False, cwd=repo_path)
     retval = p.wait()
 
-    if retval != 0:
-        raise ValueError("Something happened while running the command!")
-
     status = [line.decode("utf-8") for line in p.stdout]
 
-    return status
+    return retval, status
 
 
 def create_argument_parser():
@@ -153,6 +150,29 @@ def create_argument_parser():
     return parser
 
 
+def unstaged_changes(repo):
+    """
+    If there are unstaged changes in the repository, this method returns True.
+    """
+
+    # We can check for unstaged changes with:
+    git = ["git", "diff", "--exit-code"]
+    retval, status = run_command(git, repo)
+
+    return retval == 0
+
+
+def staged_changes(repo):
+    """
+    If there are staged changes, but not committed, this method will return true.
+    """
+
+    # To check if there are any changes that are staged but not committed
+    git = ["git", "diff", "--cached", "--exit-code"]
+    retval, status = run_command(git, repo)
+    return retval == 0
+
+
 def find_repos(root):
     """
     Search for all the git repos under the root folder. It will return a list
@@ -174,6 +194,7 @@ def display_status(repo):
     """
     # https://codereview.stackexchange.com/questions/117639/bash-function-to-parse-git-status
     # https://stackoverflow.com/questions/30449862/is-there-a-method-of-getting-the-number-of-files-in-git-repository-with-new-modi
+    # https://unix.stackexchange.com/questions/155046/determine-if-git-working-directory-is-clean-from-a-script
 
     # https://mirrors.edge.kernel.org/pub/software/scm/git/docs/git-status.html#_porcelain_format
 
@@ -260,8 +281,22 @@ def checkout(repo, branch):
     Checkout the branch (creates it if it doesn't exist)
     """
 
-    git = ["git", "checkout", "--porcelain", "-b", branch_name]
-    status = run_command(git, repo)
+    # check to see if the branch is active, if it is we don't need to check it out
+    git = ["git", "branch"]
+    retval, status = run_command(git, repo)
+
+    for b in status:
+        if b.strip().startswith("*"):
+            if b[1:].strip().lower() == branch.lower():
+                return [f"{branch} Already Checked out..."]
+
+    git = ["git", "checkout", "-b", branch]
+    retval, status = run_command(git, repo)
+
+    if retval != 0:
+        print("\n".join(status))
+        print()
+        raise ValueError("Something happened while running the git checkout!")
 
     return status
 
@@ -271,8 +306,16 @@ def add(repo):
     Add all new files to the stage of the current branch
     """
 
-    git = ["git", "add", "--porcelain", "."]
-    status = run_command(git, repo)
+    if unstaged_changes(repo):
+        return ["No unstaged changes to add..."]
+
+    git = ["git", "add", "."]
+    retval, status = run_command(git, repo)
+
+    if retval != 0:
+        print("\n".join(status))
+        print()
+        raise ValueError("Something happened while running the git add!")
 
     return status
 
@@ -282,9 +325,17 @@ def commit(repo, msg):
     commit all staged files to the current branch
     """
 
-    #
-    git = ["git", "commit", "--porcelain", "-a", "-m", commit_msg]
-    status = run_command(git, repo)
+    if staged_changes(repo):
+        return ["No stagged changes to commit..."]
+
+    # there are stagged changes that need to be committed
+    git = ["git", "commit", "-a", "-m", msg]
+    retval, status = run_command(git, repo)
+
+    if retval != 0:
+        print("\n".join(status))
+        print()
+        raise ValueError("Something happened while running the git commit!")
 
     return status
 
@@ -302,8 +353,14 @@ def push(repo):
     """
 
     # git = ["git", "push", "--porcelain", "-u", "--all"]
-    git = ["git", "push", "--porcelain", "-u"]
-    status = run_command(git, repo)
+    git = ["git", "push", "--set-upstream", "--all"]
+
+    retval, status = run_command(git, repo)
+
+    if retval != 0:
+        print("\n".join(status))
+        print()
+        raise ValueError("Something happened while running the git push!")
 
     return status
 
@@ -331,18 +388,22 @@ def changes_to_remote(repo, branch_name, commit_msg):
     # $ git commit -a  <- add the commit message via command line here
     # $ git push -u --all
 
+    print("Checkout...")
     status = checkout(repo, branch_name)
     print("\n".join(status))
     print()
 
+    print("Add...")
     status = add(repo)
     print("\n".join(status))
     print()
 
+    print("Commit...")
     status = commit(repo, commit_msg)
     print("\n".join(status))
     print()
 
+    print("Push...")
     status = push(repo)
     print("\n".join(status))
     print()
