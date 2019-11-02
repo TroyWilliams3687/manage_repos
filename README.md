@@ -1,6 +1,6 @@
 # Manage Git Repos
 
-Typically, when I am working on personal projects my work flow involves a number of repos for different parts of a project. Typically I am the only one working on the repositories across different machines. I wrote this script to help me out. The script will allow me to iterate recursively through a file path and find all valid repos. I can then do batch operations such as stage all unstaged changes. Commit any stage changes and push them to remote repositories. It is really quite nice. Typically I'll have private repos stored on my home computers and have remote repos on my laptops or other systems.
+Typically, when I am working on personal projects (think lots of different jupyter notebooks) my work flow involves a number of repos for different parts of a project. Typically I am the only one working on the repositories across different machines. I wrote this script to help me out. The script will allow me to iterate recursively through a file path and find all valid repos. I can then do batch operations such as stage all unstaged changes. Commit any stage changes and push them to remote repositories. It is really quite nice. Typically I'll have private repos stored on my home computers and have remote repos on my laptops or other systems.
 
 I simply work on master. I don't see a reason to do anything different as I am not generally collaborating with anyone on these projects. In order to push my changes to my remote repositories I need to create a branch to push because it won't let me push to the remote repo on master.
 

@@ -3,26 +3,14 @@
 
 """
 
-This script will manage multiple git repositories
-
-https://stackoverflow.com/questions/1456269/python-git-module-experiences
-
+This script will assist in managing a large number of repositories where there
+is only one author or contributor.
 
 TODO
-
-add a flag to do the following for the laptop:
-$ git branch LT-IRI-01 <- branch name should be CLI option
-$ git add . <- only if untracked files - basically stage all changes
-$ git commit -a  <- add the commit message via command line here
-$ git push -u --all
 
 add an option to do the following on my home computer:
 $ git merge LT-IRI-01 <- cli option
 $ git branch -d LT-IRI-01 <- CLI option - this may not be necessary as I may just leave it in
-
-Will need to update the status so that it shows when branches are ahead of the master branch...
-My Tasks
-
 
 
 # -------------------------
