@@ -344,6 +344,67 @@ def push(repo):
 
     return status
 
+def pull(repo):
+    """
+    Pull changes from remote to the active branch and merge the changes locally.
+    """
+
+    # need to be able to prompt for the ssh key passphrase and pass it to git in a safe way
+
+    # prompt for passphrase
+    # - https://stackoverflow.com/questions/42099319/handle-prompts-in-python-popen
+    # - https://stackoverflow.com/questions/53158931/subprocess-communicate-wont-supply-input-to-popen-calling-ssh-via-git
+
+    # may have to launch an ssh agent for this to work properly.
+
+
+
+    pass
+
+def sync_remote(repo):
+    """
+    Check to see if the remote is ahead of the local and pull the changes on the
+    activate branch, that is the master branch locally is behind the remote.
+
+    """
+
+    # how to check to see if a repo needs to be updated with a remote:
+    # https://stackoverflow.com/questions/3258243/check-if-pull-needed-in-git
+
+    # $ git remote -v update
+    # Fetching origin
+    # Enter passphrase for key 'D:\documents\home\.ssh\id_rsa':
+    # remote: Counting objects: 7, done.
+    # remote: Compressing objects: 100% (5/5), done.
+    # remote: Total 7 (delta 1), reused 0 (delta 0)
+    # Unpacking objects: 100% (7/7), done.
+    # From ssh://bluebill.strangled.net:10000/mnt/backup/repositories/jupyter/projects
+    #    f497f5c..b4b8e9a  master     -> origin/master
+    #  = [up to date]      LT-IRI-01  -> origin/LT-IRI-01
+
+    # in the above, the remote is ahead of the master branch of the local repo.
+    # This means that we can pull the changes
+
+    # $ git pull
+    # Enter passphrase for key 'D:\documents\home\.ssh\id_rsa':
+    # Updating f497f5c..b4b8e9a
+    # Fast-forward
+    #  blood pressure/blood pressure.ipynb        | 1276 ++++++++++++++++++++++++++++
+    #  blood pressure/data/raw/blood_pressure.csv |   67 ++
+    #  2 files changed, 1343 insertions(+)
+    #  create mode 100644 blood pressure/blood pressure.ipynb
+    #  create mode 100644 blood pressure/data/raw/blood_pressure.csv
+
+    # $ git remote -v update
+    # Fetching origin
+    # Enter passphrase for key 'D:\documents\home\.ssh\id_rsa':
+    # From ssh://bluebill.strangled.net:10000/mnt/backup/repositories/jupyter/projects
+    #  = [up to date]      master     -> origin/master
+    #  = [up to date]      LT-IRI-01  -> origin/LT-IRI-01
+
+    pass
+
+
 
 def changes_to_remote(repo, branch_name, commit_msg):
     """
