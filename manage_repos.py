@@ -138,6 +138,12 @@ def create_argument_parser():
     )
 
     parser.add_argument(
+        "--fetch-all",
+        help="Fetch all changes for all branches from the remote.",
+        action="store_true",
+    )
+
+    parser.add_argument(
         "--changes_to_remote",
         help="Take the changes in a repo, create a branch, commit them and push to remote creating a tracking branch if necessary. Required: --checkout BRANCH NAME and --commit MESSAGE",
         action="store_true",
@@ -270,7 +276,10 @@ def display_status(repo):
 
 def checkout(repo, branch):
     """
-    Checkout the branch (creates it if it doesn't exist)
+    Switch to the list branch updating the files in the working tree to match the
+    version in the branch.
+
+    If the branch doesn't exist it will be created.
     """
 
     # check to see if the branch is active, if it is we don't need to check it out
@@ -375,6 +384,27 @@ def pull(repo):
 
     return status
 
+def fetch_all(repo):
+    """
+    Fetch all changes from remote.
+    """
+
+    # The ssh key needs to be stored in a key agent otherwise the password
+    # prompt will kill the script
+
+    print(repo)
+
+    git = ["git", "fetch", "--all"]
+
+    retval, status = run_command(git, repo)
+
+    if retval != 0:
+        print("\n".join(status))
+        print()
+        raise ValueError("Something happened while running the git fetch --all!")
+
+    return status
+
 def status_remote(repo):
     """
     The idea is to check to see if there are changes in the remote repo and if
@@ -397,6 +427,8 @@ def status_remote(repo):
 
     # in the above, the remote is ahead of the master branch of the local repo.
     # This means that we can pull the changes
+
+    print(repo)
 
     git = ["git", "remote", "-v", "update"]
 
@@ -539,6 +571,11 @@ def main():
     elif args.push:
         for r in repos:
             status = push(r)
+            print("\n".join(status))
+
+    elif args.fetch_all:
+        for r in repos:
+            status = fetch_all(r)
             print("\n".join(status))
 
     elif args.changes_to_remote:
