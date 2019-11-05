@@ -98,6 +98,12 @@ def create_argument_parser():
     )
 
     parser.add_argument(
+        "--status-remote",
+        help="List the status of the repositories compared to the remotes.",
+        action="store_true",
+    )
+
+    parser.add_argument(
         "--checkout",
         help="The name of the branch in the repo to checkout. It will be created if it doesn't exist.",
         action="store",
@@ -122,6 +128,12 @@ def create_argument_parser():
     parser.add_argument(
         "--push",
         help="Push the changes to remote, creating a tracking branch if required.",
+        action="store_true",
+    )
+
+    parser.add_argument(
+        "--pull",
+        help="Pull the changes from remote and merging the active branch.",
         action="store_true",
     )
 
@@ -349,17 +361,54 @@ def pull(repo):
     Pull changes from remote to the active branch and merge the changes locally.
     """
 
-    # need to be able to prompt for the ssh key passphrase and pass it to git in a safe way
+    # The ssh key needs to be stored in a key agent otherwise the password
+    # prompt will kill the script
 
-    # prompt for passphrase
-    # - https://stackoverflow.com/questions/42099319/handle-prompts-in-python-popen
-    # - https://stackoverflow.com/questions/53158931/subprocess-communicate-wont-supply-input-to-popen-calling-ssh-via-git
+    git = ["git", "pull"]
 
-    # may have to launch an ssh agent for this to work properly.
+    retval, status = run_command(git, repo)
 
+    if retval != 0:
+        print("\n".join(status))
+        print()
+        raise ValueError("Something happened while running the git pull!")
 
+    return status
 
-    pass
+def status_remote(repo):
+    """
+    The idea is to check to see if there are changes in the remote repo and if
+    so what is the state.
+    """
+
+    # how to check to see if a repo needs to be updated with a remote:
+    # https://stackoverflow.com/questions/3258243/check-if-pull-needed-in-git
+
+    # $ git remote -v update
+    # Fetching origin
+    # Enter passphrase for key 'D:\documents\home\.ssh\id_rsa':
+    # remote: Counting objects: 7, done.
+    # remote: Compressing objects: 100% (5/5), done.
+    # remote: Total 7 (delta 1), reused 0 (delta 0)
+    # Unpacking objects: 100% (7/7), done.
+    # From ssh://bluebill.strangled.net:10000/mnt/backup/repositories/jupyter/projects
+    #    f497f5c..b4b8e9a  master     -> origin/master
+    #  = [up to date]      LT-IRI-01  -> origin/LT-IRI-01
+
+    # in the above, the remote is ahead of the master branch of the local repo.
+    # This means that we can pull the changes
+
+    git = ["git", "remote", "-v", "update"]
+
+    retval, status = run_command(git, repo)
+
+    if retval != 0:
+        print("\n".join(status))
+        print()
+        raise ValueError("Something happened while running the git remote -v update!")
+
+    return status
+
 
 def sync_remote(repo):
     """
@@ -460,21 +509,31 @@ def main():
         raise ValueError(f"{args.path} is not a directory!")
 
     print("Searching for repos...")
-    repos = find_repos(root)
+    repos = find_repos(root) # could convert this into a generator
+
+    # could deal with this list of options better, no point in searching for
+    # repos if non of the arguments are set
 
     if args.list:
-
         for r in repos:
             print(r)
 
     elif args.status:
-
         for r in repos:
             display_status(r)
+
+    elif args.status_remote:
+        for r in repos:
+            status_remote(r)
 
     elif args.add:
         for r in repos:
             status = add(r)
+            print("\n".join(status))
+
+    elif args.pull:
+        for r in repos:
+            status = pull(r)
             print("\n".join(status))
 
     elif args.push:
