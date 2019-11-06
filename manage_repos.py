@@ -76,6 +76,7 @@ def run_command(command, repo_path):
 
 def create_argument_parser():
     """
+    The argument parser is going to manage the command line switches and help displays.
     """
 
     parser = argparse.ArgumentParser(description="Manage Git Repositories.")
@@ -175,20 +176,29 @@ def staged_changes(repo):
     return retval == 0
 
 
+# def find_repos(root):
+#     """
+#     Search for all the git repos under the root folder. It will return a list
+#     of git repos that are relative to the root (including the root folder)
+#     """
+
+#     repos = []
+
+#     for f in root.rglob("*.*"):
+#         if f.is_dir() and f.stem == ".git":
+#             repos.append(f.parent)
+
+#     return repos
+
 def find_repos(root):
     """
-    Search for all the git repos under the root folder. It will return a list
-    of git repos that are relative to the root (including the root folder)
+    A generator that will recursively iterate through all of the folders under
+    the root folder and find git repos.
     """
-
-    repos = []
 
     for f in root.rglob("*.*"):
         if f.is_dir() and f.stem == ".git":
-            repos.append(f.parent)
-
-    return repos
-
+            yield f.parent
 
 def display_status(repo):
     """
@@ -428,63 +438,48 @@ def status_remote(repo):
     # in the above, the remote is ahead of the master branch of the local repo.
     # This means that we can pull the changes
 
+    # may need a different command like git diff or something
+
+
+
     print(repo)
 
     git = ["git", "remote", "-v", "update"]
 
-    retval, status = run_command(git, repo)
+
+    # ------------
+    p = Popen(git, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=False, cwd=repo)
+    retval = p.wait()
+
+    status = [line.decode("utf-8") for line in p.stdout]
 
     if retval != 0:
         print("\n".join(status))
         print()
         raise ValueError("Something happened while running the git remote -v update!")
 
+    # print('stdin')
+    # for line in p.stdin:
+    #     print(line.decode("utf-8"))
+
+    # for some reason, it is picking up the command on standard error....
+
+    print('stderr')
+    for line in p.stderr:
+        print(line.decode("utf-8"))
+
     return status
+    # --------------
 
+    # retval, status = run_command(git, repo)
 
-def sync_remote(repo):
-    """
-    Check to see if the remote is ahead of the local and pull the changes on the
-    activate branch, that is the master branch locally is behind the remote.
+    # print(f'retval = {retval}')
+    # if retval != 0:
+    #     print("\n".join(status))
+    #     print()
+    #     raise ValueError("Something happened while running the git remote -v update!")
 
-    """
-
-    # how to check to see if a repo needs to be updated with a remote:
-    # https://stackoverflow.com/questions/3258243/check-if-pull-needed-in-git
-
-    # $ git remote -v update
-    # Fetching origin
-    # Enter passphrase for key 'D:\documents\home\.ssh\id_rsa':
-    # remote: Counting objects: 7, done.
-    # remote: Compressing objects: 100% (5/5), done.
-    # remote: Total 7 (delta 1), reused 0 (delta 0)
-    # Unpacking objects: 100% (7/7), done.
-    # From ssh://bluebill.strangled.net:10000/mnt/backup/repositories/jupyter/projects
-    #    f497f5c..b4b8e9a  master     -> origin/master
-    #  = [up to date]      LT-IRI-01  -> origin/LT-IRI-01
-
-    # in the above, the remote is ahead of the master branch of the local repo.
-    # This means that we can pull the changes
-
-    # $ git pull
-    # Enter passphrase for key 'D:\documents\home\.ssh\id_rsa':
-    # Updating f497f5c..b4b8e9a
-    # Fast-forward
-    #  blood pressure/blood pressure.ipynb        | 1276 ++++++++++++++++++++++++++++
-    #  blood pressure/data/raw/blood_pressure.csv |   67 ++
-    #  2 files changed, 1343 insertions(+)
-    #  create mode 100644 blood pressure/blood pressure.ipynb
-    #  create mode 100644 blood pressure/data/raw/blood_pressure.csv
-
-    # $ git remote -v update
-    # Fetching origin
-    # Enter passphrase for key 'D:\documents\home\.ssh\id_rsa':
-    # From ssh://bluebill.strangled.net:10000/mnt/backup/repositories/jupyter/projects
-    #  = [up to date]      master     -> origin/master
-    #  = [up to date]      LT-IRI-01  -> origin/LT-IRI-01
-
-    pass
-
+    # return status
 
 
 def changes_to_remote(repo, branch_name, commit_msg):
@@ -540,41 +535,36 @@ def main():
     if not root.is_dir():
         raise ValueError(f"{args.path} is not a directory!")
 
-    print("Searching for repos...")
-    repos = find_repos(root) # could convert this into a generator
-
-    # could deal with this list of options better, no point in searching for
-    # repos if non of the arguments are set
-
     if args.list:
-        for r in repos:
+        for r in find_repos(root):
             print(r)
 
     elif args.status:
-        for r in repos:
+        for r in find_repos(root):
             display_status(r)
 
     elif args.status_remote:
-        for r in repos:
-            status_remote(r)
+        for r in find_repos(root):
+            status = status_remote(r)
+            print("\n".join(status))
 
     elif args.add:
-        for r in repos:
+        for r in find_repos(root):
             status = add(r)
             print("\n".join(status))
 
     elif args.pull:
-        for r in repos:
+        for r in find_repos(root):
             status = pull(r)
             print("\n".join(status))
 
     elif args.push:
-        for r in repos:
+        for r in find_repos(root):
             status = push(r)
             print("\n".join(status))
 
     elif args.fetch_all:
-        for r in repos:
+        for r in find_repos(root):
             status = fetch_all(r)
             print("\n".join(status))
 
@@ -588,21 +578,23 @@ def main():
 
             return 1
 
-        for r in repos:
+        for r in find_repos(root):
             changes_to_remote(r, args.checkout, args.commit)
 
     elif args.checkout:
 
-        for r in repos:
+        for r in find_repos(root):
             status = checkout(r, args.checkout)
             print("\n".join(status))
 
     elif args.commit:
-        for r in repos:
+
+        for r in find_repos(root):
             status = commit(r, args.commit)
             print("\n".join(status))
 
     else:
+
         print("No option specified...")
 
     return 0  # success
